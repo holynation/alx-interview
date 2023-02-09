@@ -3,44 +3,61 @@
  * This is a script that prints all characters
  * of a Star Wars movie:
  */
+
 const request = require('request');
-const film_id = process.argv[2];
-if (!film_id  || isNaN(film_id)) {
+const filmId = process.argv[2];
+if (!filmId || isNaN(filmId)) {
   process.exit(1);
 }
-const url = `https://swapi-api.alx-tools.com/api/films/${film_id}`;
+const url = `https://swapi-api.alx-tools.com/api/films/${filmId}`;
+let characters = [];
+const characterList = []; // empty list to hold the characters
 
-request(url, (error, res, body) => {
-  if (error) {
-    console.log(error);
-    return;
-  }
-  // create empty array list to hold the characters
-  const characterList = [];
+// get the list of characters from the endpoint param
+const getAllCharacters = async () => {
+  await new Promise(resolve => request(url, (error, response, body) => {
+    if (error) {
+      console.log(error);
+      return;
+    }
+    const json = JSON.parse(body);
+    characters = json.characters; // get the character param
+    resolve();
+  }));
+};
 
-  const json = JSON.parse(body);
-  const characters = json.characters; // get the character param
-
-  characters.forEach((character) => {
-    const url = character;
-    const promise = new Promise((resolve, reject) => {
-      request(url, (error, response, body) => {
-        if (error) {
-          reject(error); // reject promise
-          return;
-        }
-        const json = JSON.parse(body);
-        resolve(json.name); // resolve promise
+// get the name of characters using it endpoint
+const getNameFromCharacter = async () => {
+  if (characters.length <= 0) {
+    console.error('Error: Oops, there is no characters available');
+  } else {
+    for (const ch of characters) {
+      await new Promise((resolve, reject) => {
+        request(ch, (error, response, body) => {
+          if (error) {
+            reject(error); // reject promise
+          } else {
+            const json = JSON.parse(body);
+            characterList.push(json.name); // resolve promise
+            resolve(); // resolve promise
+          }
+        });
       });
-    });
-    characterList.push(promise);
-  });
+    }
+  }
+};
 
-  Promise.all(characterList).then((values) => {
-    values.forEach((value) => {
-      console.log(value);
-    });
-  }).catch((error) => {
-    console.log(error);
-  });
-});
+const displayNameCharacter = async () => {
+  await getAllCharacters();
+  await getNameFromCharacter();
+
+  for (const cl of characterList) {
+    if (cl === characterList[characterList.length - 1]) {
+      process.stdout.write(cl);
+    } else {
+      process.stdout.write(cl + '\n');
+    }
+  }
+};
+
+displayNameCharacter();
